@@ -200,22 +200,25 @@ class ZedCamera:
         while self.status_mapper['IS_RUNNING']:
             if self.camera.grab(self.setting_parameters['runtime']) == sl.ERROR_CODE.SUCCESS:
                 # 成功运行摄像头并成功获取图像
-                # start = time.time()
+                start = time.time()
 
                 self.camera.retrieve_image(left_img, view=sl.VIEW.LEFT)  # 获取左目,共前端使用
                 # self.camera.retrieve_image(right_img, view=sl.VIEW.RIGHT)  # 获取右目
                 # 之后是否左右合成为center的图像
 
-                # 25 fps
-                # time.sleep(max(1. / 25 - (time.time() - start), 0))
-
                 frame = left_img.get_data()  # ndarray.tobytes()
+                ret, jpeg = cv2.imencode(".jpg", frame)
+
+                # 25 fps
+                time.sleep(max(1. / 25 - (time.time() - start), 0))
+
                 yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame.tobytes() + b'\r\n\r\n')
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
             else:
                 frame = cv2.imread(os.path.join(MEDIA_ROOT, 'no_frame.jpg'))
+                ret, jpeg = cv2.imencode(".jpg", frame)
                 return (b'--frame\r\n'
-                        b'Content-Type: image/jpeg\r\n\r\n' + frame.tobytes() + b'\r\n\r\n')
+                        b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
 
     def get_current_z_value(self):
         """
