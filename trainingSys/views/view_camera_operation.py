@@ -1,6 +1,8 @@
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from .Camera import ZedCamera
 
+from .constant import SysConstant
+
 camera = ZedCamera()
 
 
@@ -35,3 +37,39 @@ def open_camera(request):
             'data': {},
             'message': 'no frame: can not open the camera'
         })
+
+
+def get_z_value(request):
+    """
+    获取摄像头z值
+    """
+
+    z = camera.get_current_z_value()
+    return JsonResponse({
+            'success': False if z == SysConstant.NO_Z else True,
+            'data': {
+                'z': z
+            },
+            'message': 'can not get z, please check the camera' if z == SysConstant.NO_Z else ''
+        })
+
+
+
+def close_camera(request):
+    """
+    关闭摄像头，并且关闭录制和跟踪
+    """
+
+    success = camera.close_camera()
+    return JsonResponse({
+        'success': success,
+        'data': {},
+        'message': 'fail to close the camera, please try again' if not success else ''
+    })
+
+def stop_recording(request):
+    return None
+
+
+def start_recording(request):
+    return None

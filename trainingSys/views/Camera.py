@@ -5,6 +5,8 @@ import cv2
 from djangoProject.settings import MEDIA_ROOT
 import os
 
+from .constant import SysConstant
+
 
 class ZedCamera:
     """
@@ -25,6 +27,7 @@ class ZedCamera:
         }  # 摄像头状态映射，易添加
         self.camera = sl.Camera()  # 相机实例
         self.pose = sl.Pose()  # 摄像头空间状态实例
+        self.orientation = sl.Orientation()  # 摄像头方位（z值）
         self.setting_parameters = {  # 设置参数实例
             'basic': None,
             'runtime': None,
@@ -219,13 +222,40 @@ class ZedCamera:
                 ret, jpeg = cv2.imencode(".jpg", frame)
                 return (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+        return ''  # 返回何种数据以结束
+
+    def stop_current_img(self):
+        """
+        停止视频流
+        :return:
+        """
+
+        self.status_mapper['IS_RUNNING'] = False  # 停止获取图像
+
+    def close_camera(self):
+        """
+        关闭摄像头
+        :return:
+        """
+
+        self.camera.disable_positional_tracking()
+        self.camera.disable_recording()
+        self.camera.close()
+        for key in self.status_mapper.keys():  # 状态符‘关闭’
+            self.status_mapper[key] = False
+        return True if not self.camera.is_opened() else False
 
     def get_current_z_value(self):
         """
         获取当前z值
         """
 
-        pass
+        if self.camera.is_opened():  # 摄像头已开启，可以获取z值
+            self.camera.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
+            self.pose.get_orientation(self.orientation)
+            return self.orientation.get()[2]
+        else:  # 无法获取
+            return SysConstant.NO_Z
 
     def recording(self, start_finish='finish', settings=None):
         """
